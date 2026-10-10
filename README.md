@@ -13,6 +13,9 @@ upward until the first block that isn't a skill block. Right-click the base with
 
 Recipe: a gold block surrounded by stone bricks.
 
+The server decides everything and sends each player their own permissions whenever they change, so the client
+refuses the same actions itself instead of showing blocks break, get placed or get crafted and then snap back.
+
 Ops can also hand out skills directly: `/tower [player] <add|remove> <skill>` and `/tower [player] list`.
 
 ## Configuration

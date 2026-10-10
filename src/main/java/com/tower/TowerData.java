@@ -130,7 +130,7 @@ public class TowerData extends WorldSavedData {
 
 	private void changed(UUID player) {
 		markDirty();
-		SkillCache.invalidate(player);
+		SkillCache.changed(player);
 	}
 
 	@Override

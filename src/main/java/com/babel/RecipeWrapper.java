@@ -42,8 +42,7 @@ public class RecipeWrapper implements IRecipe {
 		if(!recipe.matches(ic, w)) {
 			return false;
 		}
-		//the server decides, the client just displays what it is sent
-		if(w == null || w.isRemote) {
+		if(w == null) {
 			return true;
 		}
 
@@ -54,21 +53,18 @@ public class RecipeWrapper implements IRecipe {
 		if(out == null || out.getItem() == null) {
 			return true;
 		}
-		String name = SkillCache.nameOf(out);
 
+		//both sides check, so the client doesn't show an output the server won't give
 		EntityPlayer crafter = findCrafter(ic, w);
 		if(crafter != null) {
-			if(ActionBlocker.shouldCancel(crafter, Actions.CRAFT, out)) {
-				return false;
-			}
-			return true;
+			return !ActionBlocker.shouldCancel(crafter, Actions.CRAFT, out);
 		}
 
 		//no player is looking at this crafting grid, so it is automation
-		if(!TowerOfBabel.tagItemOwners) {
+		if(w.isRemote || !TowerOfBabel.tagItemOwners) {
 			return true;
 		}
-		return taggedOwnerCan(ic, w, name);
+		return taggedOwnerCan(ic, w, SkillCache.nameOf(out));
 	}
 
 	/*

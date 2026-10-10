@@ -3,9 +3,12 @@ package com.babel;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.util.FakePlayer;
 import cpw.mods.fml.common.FMLCommonHandler;
+import cpw.mods.fml.common.gameevent.PlayerEvent.PlayerChangedDimensionEvent;
+import cpw.mods.fml.common.gameevent.PlayerEvent.PlayerLoggedInEvent;
 import cpw.mods.fml.common.gameevent.PlayerEvent.PlayerLoggedOutEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
 import cpw.mods.fml.common.gameevent.TickEvent.PlayerTickEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent.BreakSpeed;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.event.entity.player.AttackEntityEvent;
 import net.minecraftforge.event.entity.player.EntityInteractEvent;
@@ -27,17 +30,20 @@ import net.minecraft.inventory.Container;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.entity.player.InventoryPlayer;
 
+import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.item.crafting.IRecipe;
 import net.minecraft.item.crafting.CraftingManager;
 import com.TowerOfBabel;
 
 /*
  * Stops players from doing things with items they don't have the skills for.
- * All checks run on the server, which is authoritative; the client is resynced when it guessed wrong.
+ * The server decides. The client is sent the same grants and cancels the same actions itself, so it doesn't show
+ * blocks breaking, being placed or items being crafted that the server then puts back.
  */
 public class ActionBlocker {
 	public static final String OWNER_TAG = "TowerUser";
@@ -62,14 +68,30 @@ public class ActionBlocker {
 	}
 
 	private Map<UUID, Container> lastSeen = new HashMap<UUID, Container>();
-	private static Map<UUID, String> lastMessage = new HashMap<UUID, String>();
-	private static Map<UUID, Long> lastMessageTime = new HashMap<UUID, Long>();
+	// shared by the client and integrated server threads in singleplayer
+	private static Map<UUID, String> lastMessage = new ConcurrentHashMap<UUID, String>();
+	private static Map<UUID, Long> lastMessageTime = new ConcurrentHashMap<UUID, Long>();
 
 	private static void setTag(UUID pid, ItemStack is) {
 		if(is.stackTagCompound == null) {
 			is.setTagCompound(new NBTTagCompound());
 		}
 		is.stackTagCompound.setString(OWNER_TAG, pid.toString());
+	}
+
+	@SubscribeEvent
+	public void login(PlayerLoggedInEvent e) {
+		if(e.player instanceof EntityPlayerMP) {
+			SkillCache.sync((EntityPlayerMP)e.player);
+		}
+	}
+
+	@SubscribeEvent
+	public void changedDimension(PlayerChangedDimensionEvent e) {
+		//dimension specific skills may have turned on or off
+		if(e.player instanceof EntityPlayerMP) {
+			SkillCache.sync((EntityPlayerMP)e.player);
+		}
 	}
 
 	@SubscribeEvent
@@ -101,12 +123,23 @@ public class ActionBlocker {
 		}
 	}
 
+	/*
+	 * Mining a block takes no time if the held item can't break blocks, so neither side ever finishes breaking it
+	 */
+	@SubscribeEvent
+	public void breakSpeed(BreakSpeed e) {
+		ItemStack i = e.entityPlayer.getHeldItem();
+		if(i != null && denied(e.entityPlayer, Actions.BREAK, SkillCache.nameOf(i))) {
+			e.setCanceled(true);
+		}
+	}
+
 	@SubscribeEvent
 	public void attempt(PlayerInteractEvent e) {
 		EntityPlayer p = e.entityPlayer;
 		ItemStack i = p.getHeldItem();
 
-		//Break
+		//Break (only fired on the server)
 		if(e.action == PlayerInteractEvent.Action.LEFT_CLICK_BLOCK) {
 			if(shouldCancel(p, Actions.BREAK, i)) {
 				e.setCanceled(true);
@@ -114,10 +147,14 @@ public class ActionBlocker {
 			return;
 		}
 
+		if(p.worldObj.isRemote) {
+			attemptClient(e, p, i);
+			return;
+		}
+
 		//Place and Use
 		if(i != null) {
-			Actions a = i.getItem() instanceof ItemBlock ? Actions.PLACE : Actions.USE;
-			if(shouldCancel(p, a, i)) {
+			if(shouldCancel(p, useAction(i), i)) {
 				e.useItem = Result.DENY;
 			}
 		}
@@ -128,6 +165,64 @@ public class ActionBlocker {
 				e.useBlock = Result.DENY;
 			}
 		}
+	}
+
+	/*
+	 * The client can only cancel a right click entirely, which also stops it reaching the server.
+	 * So cancel it when the server would let nothing happen, and otherwise let the server sort it out.
+	 */
+	private void attemptClient(PlayerInteractEvent e, EntityPlayer p, ItemStack i) {
+		boolean itemDenied = i != null && denied(p, useAction(i), SkillCache.nameOf(i));
+
+		if(e.action == PlayerInteractEvent.Action.RIGHT_CLICK_AIR) {
+			if(itemDenied) {
+				cancelClient(e, p, useAction(i), i.getDisplayName());
+			}
+			return;
+		}
+
+		Block b = p.worldObj.getBlock(e.x, e.y, e.z);
+		boolean blockDenied = denied(p, Actions.INTERACT, SkillCache.nameOf(b));
+		//vanilla skips activating the block when sneaking with an item in hand
+		boolean blockCanReact = (!p.isSneaking() || i == null) && hasActivation(b);
+
+		if(blockDenied && (i == null || itemDenied)) {
+			cancelClient(e, p, Actions.INTERACT, b.getLocalizedName());
+		} else if(itemDenied && (blockDenied || !blockCanReact)) {
+			cancelClient(e, p, useAction(i), i.getDisplayName());
+		}
+	}
+
+	private void cancelClient(PlayerInteractEvent e, EntityPlayer p, Actions a, String displayName) {
+		e.setCanceled(true);
+		//the server never hears about this click, so it can't send the message
+		tell(p, "Cannot " + a + " " + displayName);
+	}
+
+	private static Actions useAction(ItemStack i) {
+		return i.getItem() instanceof ItemBlock ? Actions.PLACE : Actions.USE;
+	}
+
+	private static Map<Class<?>, Boolean> activation = new ConcurrentHashMap<Class<?>, Boolean>();
+
+	/*
+	 * Whether a block does anything when right clicked, judged by whether it overrides onBlockActivated
+	 */
+	private static boolean hasActivation(Block b) {
+		Boolean has = activation.get(b.getClass());
+		if(has == null) {
+			has = false;
+			for(Class<?> c = b.getClass(); c != Block.class && c != null && !has; c = c.getSuperclass()) {
+				for(Method m : c.getDeclaredMethods()) {
+					if((m.getName().equals("onBlockActivated") || m.getName().equals("func_149727_a")) && m.getParameterTypes().length == 9) {
+						has = true;
+						break;
+					}
+				}
+			}
+			activation.put(b.getClass(), has);
+		}
+		return has;
 	}
 
 	@SubscribeEvent
@@ -186,6 +281,23 @@ public class ActionBlocker {
 		return i;
 	}
 
+	/*
+	 * Whether p may not do a with the thing named name. On the client this is only known for the local player.
+	 */
+	public static boolean denied(EntityPlayer p, Actions a, String name) {
+		if(p instanceof FakePlayer) {
+			return false;
+		}
+		if(p.worldObj.isRemote) {
+			return TowerOfBabel.proxy.isLocalPlayer(p) && !SkillCache.canClient(a, name);
+		}
+		return p instanceof EntityPlayerMP && !SkillCache.can(p, a, name);
+	}
+
+	/*
+	 * Checks an action that both sides see. The server tells the player why; the client stays quiet so the
+	 * message isn't shown twice.
+	 */
 	public static boolean shouldCancel(EntityPlayer p, Actions a, ItemStack i) {
 		return i != null && shouldCancel(p, a, SkillCache.nameOf(i), i.getDisplayName());
 	}
@@ -195,18 +307,15 @@ public class ActionBlocker {
 	}
 
 	private static boolean shouldCancel(EntityPlayer p, Actions a, String name, String displayName) {
-		//the server decides; the client doesn't know other players' skills on a dedicated server
-		if(p.worldObj.isRemote || !(p instanceof EntityPlayerMP) || p instanceof FakePlayer) {
+		if(!denied(p, a, name)) {
 			return false;
 		}
-		if(SkillCache.can(p, a, name)) {
-			return false;
-		}
-
-		tell(p, "Cannot " + a + " " + displayName);
-		if(a == Actions.USE || a == Actions.PLACE || a == Actions.INTERACT) {
-			//the client already predicted the action happening, so put its inventory back
-			((EntityPlayerMP)p).sendContainerToPlayer(p.inventoryContainer);
+		if(!p.worldObj.isRemote) {
+			tell(p, "Cannot " + a + " " + displayName);
+			if(a == Actions.USE || a == Actions.PLACE || a == Actions.INTERACT) {
+				//the client may have predicted the action happening, so put its inventory back
+				((EntityPlayerMP)p).sendContainerToPlayer(p.inventoryContainer);
+			}
 		}
 		return true;
 	}
@@ -216,9 +325,9 @@ public class ActionBlocker {
 	 */
 	public static void tell(EntityPlayer p, String mes) {
 		UUID id = p.getUniqueID();
-		long now = p.worldObj.getTotalWorldTime();
+		long now = System.currentTimeMillis();
 		Long last = lastMessageTime.get(id);
-		if(mes.equals(lastMessage.get(id)) && last != null && now - last < 40) {
+		if(mes.equals(lastMessage.get(id)) && last != null && now - last < 2000) {
 			return;
 		}
 		lastMessage.put(id, mes);

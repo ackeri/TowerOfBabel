@@ -2,6 +2,7 @@ package com.babel;
 
 import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import java.util.ArrayList;
@@ -14,8 +15,9 @@ import com.tower.Skill;
 import com.tower.TowerData;
 
 /*
- * Answers "can this player do this action with this item", server side only.
- * A player's grants are rebuilt whenever their skills change or they switch dimension.
+ * Answers "can this player do this action with this item".
+ * The server works this out for every player, rebuilding a player's grants whenever their skills change or they
+ * switch dimension, and sends each player their own grants so the client can give the same answers.
  */
 public class SkillCache {
 	private static class Perms {
@@ -28,9 +30,26 @@ public class SkillCache {
 			this.dim = dim;
 			this.grants = grants;
 		}
+
+		boolean allows(Actions a, String name) {
+			Integer allowed = memo.get(name);
+			if(allowed == null) {
+				allowed = 0;
+				for(Grant g : grants) {
+					if(g.pattern.matcher(name).matches()) {
+						allowed |= g.actions;
+					}
+				}
+				memo.put(name, allowed);
+			}
+			return (allowed & a.bit()) != 0;
+		}
 	}
 
+	// server thread only
 	private static final Map<UUID, Perms> cache = new HashMap<UUID, Perms>();
+	// the local player's grants as last sent by the server, null until then
+	private static volatile Perms clientPerms;
 
 	/*
 	 * Checks if player p can do action a with the item/block named name
@@ -54,17 +73,38 @@ public class SkillCache {
 			cache.put(id, perms);
 		}
 
-		Integer allowed = perms.memo.get(name);
-		if(allowed == null) {
-			allowed = 0;
-			for(Grant g : perms.grants) {
-				if(g.pattern.matcher(name).matches()) {
-					allowed |= g.actions;
-				}
-			}
-			perms.memo.put(name, allowed);
+		return perms.allows(a, name);
+	}
+
+	/*
+	 * Client side version of can for the local player. Allows everything until the server has sent grants,
+	 * leaving the server to decide.
+	 */
+	public static boolean canClient(Actions a, String name) {
+		Perms perms = clientPerms;
+		return perms == null || name == null || perms.allows(a, name);
+	}
+
+	public static void setClientGrants(List<Grant> grants) {
+		clientPerms = grants == null ? null : new Perms(0, grants);
+	}
+
+	/*
+	 * Sends p their current grants
+	 */
+	public static void sync(EntityPlayerMP p) {
+		TowerOfBabel.network.sendTo(new GrantSync(collectGrants(p.getUniqueID(), p.dimension)), p);
+	}
+
+	/*
+	 * Called when a player's skills change
+	 */
+	public static void changed(UUID id) {
+		invalidate(id);
+		EntityPlayerMP p = TowerData.findPlayer(id);
+		if(p != null) {
+			sync(p);
 		}
-		return (allowed & a.bit()) != 0;
 	}
 
 	private static List<Grant> collectGrants(UUID id, int dim) {

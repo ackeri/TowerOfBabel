@@ -4,6 +4,10 @@ import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.Mod.EventHandler;
+import cpw.mods.fml.common.SidedProxy;
+import cpw.mods.fml.common.network.NetworkRegistry;
+import cpw.mods.fml.common.network.simpleimpl.SimpleNetworkWrapper;
+import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
@@ -23,6 +27,7 @@ import com.tower.TowerBaseEntity;
 import com.tower.TowerBase;
 import com.babel.ActionBlocker;
 import com.babel.Grant;
+import com.babel.GrantSync;
 import com.babel.SkillCache;
 
 
@@ -51,10 +56,18 @@ public class TowerOfBabel
 
 	public static Block towerBase;
 
+	@SidedProxy(clientSide = "com.ClientProxy", serverSide = "com.CommonProxy")
+	public static CommonProxy proxy;
+	public static SimpleNetworkWrapper network;
+
 	@EventHandler
 	public void preInit(FMLPreInitializationEvent event) {
 		log = event.getModLog();
 		config = new Configuration(event.getSuggestedConfigurationFile());
+
+		network = NetworkRegistry.INSTANCE.newSimpleChannel(MODID);
+		network.registerMessage(GrantSync.Handler.class, GrantSync.class, 0, Side.CLIENT);
+		proxy.init();
 
 		towerBase = new TowerBase();
 		GameRegistry.registerBlock(towerBase, "TowerBase");
