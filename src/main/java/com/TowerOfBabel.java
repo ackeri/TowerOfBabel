@@ -25,6 +25,7 @@ import java.util.Map;
 import com.tower.Skill;
 import com.tower.TowerBaseEntity;
 import com.tower.TowerBase;
+import com.tower.Totems;
 import com.babel.ActionBlocker;
 import com.babel.Grant;
 import com.babel.GrantSync;
@@ -72,6 +73,7 @@ public class TowerOfBabel
 		towerBase = new TowerBase();
 		GameRegistry.registerBlock(towerBase, "TowerBase");
 		GameRegistry.registerTileEntity(TowerBaseEntity.class, "TowerBaseE");
+		Totems.registerBlocks(event.getModConfigurationDirectory());
 	}
 
 	/*
@@ -90,6 +92,7 @@ public class TowerOfBabel
 	@EventHandler
 	public void postInit(FMLPostInitializationEvent event) {
 		syncConfig();
+		Totems.registerRecipes();
 		ActionBlocker.wrapRecipes();
 	}
 

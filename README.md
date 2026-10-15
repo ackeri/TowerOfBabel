@@ -39,6 +39,33 @@ ironworking {
 Actions are `all` or a comma list of `wear,hold,carry,break,attack,use,interact,place,craft`.
 `general.defaultGrants` uses the same format for what every player can do without skills.
 
+## Totems
+`config/TowerOfBabel-totems.cfg` defines totem blocks to use as skill blocks. Each category becomes a block
+registered as `TowerOfBabel:totem_<category>`, so a skill can use `S:block=TowerOfBabel:totem_rabbit_wood`.
+
+```
+rabbit_stone {
+    S:name=Running Rabbit Stone Totem
+    S:material=stone                   # wood, stone or glass (sound, tool, see-through)
+    D:hardness=3.0
+    I:light=0
+    S:texture=towerofbabel:totem_rabbit_stone   # a resource pack can add textures for new totems
+    S:recipe <                         # shaped recipe rows; leave empty for no recipe
+        SSS
+        STS
+        SSS
+     >
+    S:ingredients <                    # X=modid:name, X=modid:name:meta or X=ore:oreDictName
+        S=ore:stone
+        T=TowerOfBabel:totem_rabbit_wood
+     >
+}
+```
+
+The bundled totems use the pixel art drawn for the mod: the running rabbit in wood and stone (plus an
+alternate drawing of each, without recipes) and the magic hand in glass. `art/` holds source art that
+isn't a block yet, like the bare running rabbit symbol for carving into other materials.
+
 ## Building
 Needs Java 17 or newer to run Gradle; a Java 8 toolchain is used to compile the mod and is downloaded
 automatically if it isn't installed.
