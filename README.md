@@ -43,36 +43,45 @@ Actions are `all` or a comma list of `wear,hold,carry,break,attack,use,interact,
 `config/TowerOfBabel-totems.cfg` defines totem blocks to use as skill blocks. Each category becomes a block
 registered as `TowerOfBabel:totem_<category>`, so a skill can use `S:block=TowerOfBabel:totem_bull_stone`.
 
+A totem's texture is either an image (`texture`) or a symbol carved into another block's texture while the game
+loads (`symbol` and `background`). Carving reads the background block's current texture, so it follows resource
+packs and works with blocks from other mods. The first background block that exists is used, which lets a totem
+use a mod's block when that mod is installed and fall back to a vanilla one otherwise:
+
 ```
-bull_stone {
-    S:name=Bull Totem (Stone)
+magic_arcane {
+    S:name=Arcane Magic Totem
     S:material=stone                   # wood, stone or glass (sound, tool, see-through)
     D:hardness=3.5
     I:light=0
-    S:texture=towerofbabel:totem_bull_stone   # a resource pack can add textures for new totems
+    S:symbol=magic                     # assets/towerofbabel/symbols/magic.txt
+    S:background <                     # first block that exists, as modid:name or modid:name:meta
+        Thaumcraft:blockCosmeticSolid:6
+        minecraft:stonebrick
+     >
+    D:rim=1.0                          # brightness of the outline; above 1 helps on busy textures
     S:recipe <                         # shaped recipe rows; leave empty for no recipe
         XXX
         XYX
         XXX
      >
     S:ingredients <                    # X=modid:name, X=modid:name:meta or X=ore:oreDictName
-        X=ore:stone
-        Y=TowerOfBabel:totem_bull_cobblestone
+        X=minecraft:stonebrick
+        Y=TowerOfBabel:totem_magic_glass
      >
 }
 ```
 
 The bundled totems come from pixel art drawn for the mod. Six symbols (running rabbit, sitting rabbit,
-rabbit head, bull, tools and pipes) each come in wood, cobblestone and stone, and each level is crafted
-from the one below it: logs around a themed item, then cobblestone around the wood totem, then stone around
-the cobblestone one. There are also two alternate running rabbit drawings without recipes, and the magic
-hand in glass.
+rabbit head, bull, tools and pipes) are each carved into oak log, cobblestone and stone, and each level is
+crafted from the one below it. The running rabbit's wood and stone totems, two alternate drawings of it and
+the glass magic hand are hand drawn textures, and the magic hand symbol is also carved into Thaumcraft's
+arcane stone (or stone bricks without Thaumcraft).
 
-### Totem art
-`art/symbols/` holds each symbol as a 16x16 text grid transcribed from the original sketches, and
-`art/materials/` the backgrounds they are carved into. After editing either, regenerate the textures with
-`python3 art/carve.py` (needs Pillow). The hand drawn wood and stone running rabbits and the magic glass are
-not generated and are never overwritten.
+Symbols are 16x16 text grids in `assets/towerofbabel/symbols/`, transcribed from the original sketches, and a
+resource pack can add more. Each character is one pixel:
+`.` nothing, `D` dark carving, `L` light carving, `K` deepest carving, `W` raised outline, `B` inlaid gem,
+and `R`/`T`/`M` (the bull's red, tan and brown parts) carve like `D`, `L` and `K`.
 
 ## Building
 Needs Java 17 or newer to run Gradle; a Java 8 toolchain is used to compile the mod and is downloaded

@@ -37,12 +37,19 @@ public class Totems {
 			try {
 				String display = config.getString("name", name, name, "Name shown in game");
 				String texture = config.getString("texture", name, "towerofbabel:totem_" + name,
-						"Block texture as domain:name, found at assets/<domain>/textures/blocks/<name>.png. A resource pack can supply new ones");
+						"Block texture as domain:name, found at assets/<domain>/textures/blocks/<name>.png. Used when there is no symbol");
+				String symbol = config.getString("symbol", name, "",
+						"Symbol to carve into a background block's texture, from assets/towerofbabel/symbols/<symbol>.txt (or domain:symbol). "
+						+ "A resource pack can add symbols");
+				String[] backgrounds = config.getStringList("background", name, new String[] {"minecraft:stone"},
+						"Blocks whose texture the symbol is carved into, as modid:name or modid:name:meta. The first one that exists is used, "
+						+ "so list blocks from optional mods first and a vanilla block last");
+				float rim = config.getFloat("rim", name, 1.0f, 0.5f, 2.0f, "Brightness of the outline around the carving; above 1 helps on busy textures");
 				String kind = config.getString("material", name, "stone", "What the block is made of, which sets its sound and tool", new String[] {"wood", "stone", "glass"});
 				float hardness = config.getFloat("hardness", name, 2.5f, 0, 100, "How long the block takes to break");
 				int light = config.getInt("light", name, 0, 0, 15, "Light level the block gives off");
 
-				TotemBlock b = new TotemBlock(name, TotemBlock.Kind.valueOf(kind.toUpperCase()), texture, hardness, light);
+				TotemBlock b = new TotemBlock(name, TotemBlock.Kind.valueOf(kind.toUpperCase()), texture, symbol, backgrounds, rim, hardness, light);
 				GameRegistry.registerBlock(b, "totem_" + name);
 				LanguageRegistry.instance().addStringLocalization(b.getUnlocalizedName() + ".name", display);
 				totems.put(name, b);
@@ -123,21 +130,39 @@ public class Totems {
 		symbol("tools", "Tools", "minecraft:iron_pickaxe");
 		symbol("pipes", "Pipes", "minecraft:hopper");
 
-		//alternate drawings of the running rabbit, without recipes
+		//the running rabbit's wood and stone totems were drawn by hand rather than carved
+		for(String handmade : new String[] {"running_rabbit_wood", "running_rabbit_stone"}) {
+			config.getCategory(handmade).remove("background");
+			config.getCategory(handmade).remove("rim");
+			config.get(handmade, "symbol", "").set("");
+		}
 		totem("running_rabbit_wood_alt", "Running Rabbit Totem (Wood, Alternate)", "wood", 2.5f, 0, new String[0], new String[0]);
 		totem("running_rabbit_stone_alt", "Running Rabbit Totem (Stone, Alternate)", "stone", 3.5f, 0, new String[0], new String[0]);
 
 		totem("magic_glass", "Magic Totem", "glass", 1.0f, 7,
 				new String[] {"GGG", "GLG", "GGG"}, new String[] {"G=ore:blockGlassColorless", "L=minecraft:dye:4"});
+		//carved into Thaumcraft's arcane stone when Thaumcraft is installed, otherwise stone bricks
+		totem("magic_arcane", "Arcane Magic Totem", "stone", 3.5f, 0,
+				new String[] {"XXX", "XYX", "XXX"}, new String[] {"X=minecraft:stonebrick", "Y=TowerOfBabel:totem_magic_glass"});
+		carving("magic_arcane", "magic", 1.0f, "Thaumcraft:blockCosmeticSolid:6", "minecraft:stonebrick");
 	}
 
 	private static void symbol(String id, String name, String item) {
 		String[] ring = {"XXX", "XYX", "XXX"};
 		totem(id + "_wood", name + " Totem (Wood)", "wood", 2.5f, 0, ring, new String[] {"X=ore:logWood", "Y=" + item});
+		carving(id + "_wood", id, 1.3f, "minecraft:log");
 		totem(id + "_cobblestone", name + " Totem (Cobblestone)", "stone", 3.0f, 0, ring,
 				new String[] {"X=minecraft:cobblestone", "Y=TowerOfBabel:totem_" + id + "_wood"});
+		carving(id + "_cobblestone", id, 1.22f, "minecraft:cobblestone");
 		totem(id + "_stone", name + " Totem (Stone)", "stone", 3.5f, 0, ring,
 				new String[] {"X=ore:stone", "Y=TowerOfBabel:totem_" + id + "_cobblestone"});
+		carving(id + "_stone", id, 1.0f, "minecraft:stone");
+	}
+
+	private static void carving(String id, String symbol, float rim, String... backgrounds) {
+		config.get(id, "symbol", symbol);
+		config.get(id, "background", backgrounds);
+		config.get(id, "rim", rim);
 	}
 
 	private static void totem(String id, String name, String material, float hardness, int light, String[] recipe, String[] ingredients) {
