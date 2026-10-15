@@ -112,18 +112,32 @@ public class Totems {
 	}
 
 	/*
-	 * Totems drawn for the mod. The running rabbit comes in wood and stone, with an alternate drawing of each
-	 * that has no recipe, and the magic hand is glass.
+	 * Totems drawn for the mod. Each symbol comes in wood, cobblestone and stone, and each is crafted from the one
+	 * before it, so a tract's levels have to be worked through in order.
 	 */
 	private static void generateConfig() {
-		totem("rabbit_wood", "Running Rabbit Totem", "wood", 2.5f, 0,
-				new String[] {"LLL", "LSL", "LLL"}, new String[] {"L=ore:logWood", "S=minecraft:sugar"});
-		totem("rabbit_stone", "Running Rabbit Stone Totem", "stone", 3.0f, 0,
-				new String[] {"SSS", "STS", "SSS"}, new String[] {"S=ore:stone", "T=TowerOfBabel:totem_rabbit_wood"});
-		totem("rabbit_wood_alt", "Running Rabbit Totem (Alternate)", "wood", 2.5f, 0, new String[0], new String[0]);
-		totem("rabbit_stone_alt", "Running Rabbit Stone Totem (Alternate)", "stone", 3.0f, 0, new String[0], new String[0]);
+		symbol("running_rabbit", "Running Rabbit", "minecraft:sugar");
+		symbol("sitting_rabbit", "Sitting Rabbit", "minecraft:carrot");
+		symbol("rabbit_head", "Rabbit Head", "minecraft:golden_carrot");
+		symbol("bull", "Bull", "minecraft:blaze_powder");
+		symbol("tools", "Tools", "minecraft:iron_pickaxe");
+		symbol("pipes", "Pipes", "minecraft:hopper");
+
+		//alternate drawings of the running rabbit, without recipes
+		totem("running_rabbit_wood_alt", "Running Rabbit Totem (Wood, Alternate)", "wood", 2.5f, 0, new String[0], new String[0]);
+		totem("running_rabbit_stone_alt", "Running Rabbit Totem (Stone, Alternate)", "stone", 3.5f, 0, new String[0], new String[0]);
+
 		totem("magic_glass", "Magic Totem", "glass", 1.0f, 7,
 				new String[] {"GGG", "GLG", "GGG"}, new String[] {"G=ore:blockGlassColorless", "L=minecraft:dye:4"});
+	}
+
+	private static void symbol(String id, String name, String item) {
+		String[] ring = {"XXX", "XYX", "XXX"};
+		totem(id + "_wood", name + " Totem (Wood)", "wood", 2.5f, 0, ring, new String[] {"X=ore:logWood", "Y=" + item});
+		totem(id + "_cobblestone", name + " Totem (Cobblestone)", "stone", 3.0f, 0, ring,
+				new String[] {"X=minecraft:cobblestone", "Y=TowerOfBabel:totem_" + id + "_wood"});
+		totem(id + "_stone", name + " Totem (Stone)", "stone", 3.5f, 0, ring,
+				new String[] {"X=ore:stone", "Y=TowerOfBabel:totem_" + id + "_cobblestone"});
 	}
 
 	private static void totem(String id, String name, String material, float hardness, int light, String[] recipe, String[] ingredients) {
