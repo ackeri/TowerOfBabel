@@ -6,11 +6,13 @@ import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.network.FMLNetworkEvent.ClientDisconnectionFromServerEvent;
 import com.babel.SkillCache;
+import com.tower.client.Tooltips;
 
 public class ClientProxy extends CommonProxy {
 	@Override
 	public void init() {
 		FMLCommonHandler.instance().bus().register(this);
+		Tooltips.register();
 	}
 
 	@Override

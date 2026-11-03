@@ -16,7 +16,10 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.world.BlockEvent;
 import cpw.mods.fml.common.eventhandler.EventPriority;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
+import java.util.Random;
 import java.util.UUID;
+import cpw.mods.fml.relauncher.Side;
+import cpw.mods.fml.relauncher.SideOnly;
 import com.TowerOfBabel;
 
 /*
@@ -101,6 +104,26 @@ public class TowerBase extends BlockContainer {
 			}
 		}
 		super.breakBlock(world, x, y, z, b, m);
+	}
+
+	/*
+	 * Glyphs drift down the outside of the tower from each totem that counts, like books feeding an enchanting table
+	 */
+	@SideOnly(Side.CLIENT)
+	@Override
+	public void randomDisplayTick(World world, int x, int y, int z, Random rand) {
+		TileEntity te = world.getTileEntity(x, y, z);
+		if(!(te instanceof TowerBaseEntity)) return;
+		//this is called for a given block only every couple of seconds, so send a few glyphs each time
+		for(int level : ((TowerBaseEntity)te).getLevels()) for(int n = 0; n < 4; n++) {
+			int side = rand.nextInt(4);
+			double sx = side == 0 ? 0.75 : side == 1 ? -0.75 : (rand.nextDouble() - 0.5) * 1.2;
+			double sz = side == 2 ? 0.75 : side == 3 ? -0.75 : (rand.nextDouble() - 0.5) * 1.2;
+			//the particle starts at origin + motion and drifts to origin, dropping 1.2 blocks at the end
+			double ox = x + 0.5 + sx * 0.8, oy = y + 0.8 + 1.2, oz = z + 0.5 + sz * 0.8;
+			double fromY = y + level + rand.nextDouble();
+			world.spawnParticle("enchantmenttable", ox, oy, oz, x + 0.5 + sx - ox, fromY - oy, z + 0.5 + sz - oz);
+		}
 	}
 
 	@Override

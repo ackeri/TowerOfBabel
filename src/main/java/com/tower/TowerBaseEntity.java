@@ -4,6 +4,9 @@ import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.network.NetworkManager;
+import net.minecraft.network.Packet;
+import net.minecraft.network.play.server.S35PacketUpdateTileEntity;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ChatComponentText;
 import java.util.ArrayList;
@@ -20,6 +23,8 @@ public class TowerBaseEntity extends TileEntity {
 	private UUID owner;
 	private String ownerName = "";
 	private List<String> skills = new ArrayList<String>();
+	// tower levels holding a skill block that counts, for the client's particles
+	private List<Integer> levels = new ArrayList<Integer>();
 
 	public UUID getOwner() {
 		return owner;
@@ -35,7 +40,13 @@ public class TowerBaseEntity extends TileEntity {
 	public void updateEntity() {
 		if(worldObj.isRemote || owner == null || worldObj.getTotalWorldTime() % 10 != 0) return;
 
-		List<String> now = scan();
+		List<Integer> nowLevels = new ArrayList<Integer>();
+		List<String> now = scan(nowLevels);
+		if(!nowLevels.equals(levels)) {
+			levels = nowLevels;
+			markDirty();
+			worldObj.markBlockForUpdate(xCoord, yCoord, zCoord);
+		}
 		if(now.equals(skills)) return;
 
 		List<String> before = skills;
@@ -65,7 +76,7 @@ public class TowerBaseEntity extends TileEntity {
 	 * Reads skill blocks upward from the base until something that isn't a skill block.
 	 * A skill only counts at its allowed heights and once its prerequisites are lower in the tower.
 	 */
-	public List<String> scan() {
+	public List<String> scan(List<Integer> levelsOut) {
 		List<String> found = new ArrayList<String>();
 		Set<String> have = new HashSet<String>();
 
@@ -86,6 +97,7 @@ public class TowerBaseEntity extends TileEntity {
 
 			if(skill.allowedAt(level) && have.containsAll(skill.prereqs) && have.add(skill.name)) {
 				found.add(skill.name);
+				levelsOut.add(level);
 			}
 		}
 		return found;
@@ -106,6 +118,25 @@ public class TowerBaseEntity extends TileEntity {
 			tag.setString("ownerName", ownerName);
 		}
 		tag.setTag("skills", TowerData.writeStrings(skills));
+		int[] l = new int[levels.size()];
+		for(int i = 0; i < l.length; i++) l[i] = levels.get(i);
+		tag.setIntArray("levels", l);
+	}
+
+	public List<Integer> getLevels() {
+		return levels;
+	}
+
+	@Override
+	public Packet getDescriptionPacket() {
+		NBTTagCompound tag = new NBTTagCompound();
+		writeToNBT(tag);
+		return new S35PacketUpdateTileEntity(xCoord, yCoord, zCoord, 0, tag);
+	}
+
+	@Override
+	public void onDataPacket(NetworkManager net, S35PacketUpdateTileEntity pkt) {
+		readFromNBT(pkt.func_148857_g());
 	}
 
 	@Override
@@ -114,5 +145,7 @@ public class TowerBaseEntity extends TileEntity {
 		owner = tag.hasKey("owner") ? UUID.fromString(tag.getString("owner")) : null;
 		ownerName = tag.getString("ownerName");
 		skills = TowerData.readStrings(tag.getTagList("skills", 8));
+		levels = new ArrayList<Integer>();
+		for(int l : tag.getIntArray("levels")) levels.add(l);
 	}
 }

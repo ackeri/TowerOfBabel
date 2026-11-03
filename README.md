@@ -36,6 +36,22 @@ ironworking {
 }
 ```
 
+Skills can also give potion effects while active, like a beacon, and a description shown on tooltips:
+
+```
+might {
+    S:block=TowerOfBabel:totem_bull_wood
+    S:effects <                        # name or name:level, e.g. speed, strength:2, night_vision, haste
+        strength
+     >
+    S:description=The bull: Strength
+}
+```
+
+Hovering a skill block shows which skill it grants, what it does and where it has to go in the tower, and
+any item the player is locked out of says which skill they need. Blocked actions say the same in chat,
+e.g. "Cannot hold Iron Sword (needs ironworking)". Active totems send enchanting glyphs down to the base.
+
 Actions are `all` or a comma list of `wear,hold,carry,break,attack,use,interact,place,craft`.
 `general.defaultGrants` uses the same format for what every player can do without skills.
 

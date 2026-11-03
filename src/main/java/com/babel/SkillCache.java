@@ -109,12 +109,23 @@ public class SkillCache {
 
 	private static List<Grant> collectGrants(UUID id, int dim) {
 		List<Grant> grants = new ArrayList<Grant>(TowerOfBabel.defaultGrants);
+		for(Skill s : activeSkills(id, dim)) {
+			grants.addAll(s.grants);
+		}
+		return grants;
+	}
+
+	/*
+	 * Every skill a player has right now: given by command, or from their tower if it applies in this dimension
+	 */
+	public static List<Skill> activeSkills(UUID id, int dim) {
+		List<Skill> skills = new ArrayList<Skill>();
 		TowerData data = TowerData.get();
 
 		for(String name : data.getAdminSkills(id)) {
 			Skill s = TowerOfBabel.skills.get(name);
 			if(s != null) {
-				grants.addAll(s.grants);
+				skills.add(s);
 			}
 		}
 
@@ -122,12 +133,12 @@ public class SkillCache {
 		if(t != null) {
 			for(String name : t.skills) {
 				Skill s = TowerOfBabel.skills.get(name);
-				if(s != null && (!s.dimensionSpecific || t.dim == dim)) {
-					grants.addAll(s.grants);
+				if(s != null && (!s.dimensionSpecific || t.dim == dim) && !skills.contains(s)) {
+					skills.add(s);
 				}
 			}
 		}
-		return grants;
+		return skills;
 	}
 
 	public static void invalidate(UUID id) {

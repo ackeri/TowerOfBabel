@@ -26,6 +26,7 @@ import com.tower.Skill;
 import com.tower.TowerBaseEntity;
 import com.tower.TowerBase;
 import com.tower.Totems;
+import com.tower.SkillEffects;
 import com.babel.ActionBlocker;
 import com.babel.Grant;
 import com.babel.GrantSync;
@@ -84,6 +85,7 @@ public class TowerOfBabel
 	{
 		GameRegistry.addRecipe(new ItemStack(towerBase), "SSS", "SGS", "SSS", 'S', Blocks.stonebrick, 'G', Blocks.gold_block);
 		ActionBlocker.register();
+		SkillEffects.register();
 	}
 
 	/*
@@ -162,7 +164,7 @@ public class TowerOfBabel
 	}
 
 	/*
-	 * Example config for a new install: iron and diamond gear are locked behind tower skills
+	 * Example config for a new install: iron and diamond gear are locked behind tower skills, and a few totems give effects
 	 */
 	private static void generateConfig() {
 		String gear = "_(sword|shovel|pickaxe|axe|hoe|helmet|chestplate|leggings|boots)";
@@ -175,5 +177,20 @@ public class TowerOfBabel
 		config.get("diamondworking", "block", "minecraft:diamond_block");
 		config.get("diamondworking", "prereqs", new String[] {"ironworking"});
 		config.get("diamondworking", "grants", new String[] {"all:minecraft:diamond" + gear});
+
+		//totem skills that give effects, after the sketches they were drawn from
+		config.get("swiftness", "block", "TowerOfBabel:totem_running_rabbit_wood");
+		config.get("swiftness", "effects", new String[] {"speed"});
+		config.get("swiftness", "description", "The running rabbit: Speed");
+		config.get("swiftness2", "block", "TowerOfBabel:totem_running_rabbit_cobblestone");
+		config.get("swiftness2", "prereqs", new String[] {"swiftness"});
+		config.get("swiftness2", "effects", new String[] {"speed:2"});
+		config.get("swiftness2", "description", "The running rabbit, carved deeper: Speed II");
+		config.get("might", "block", "TowerOfBabel:totem_bull_wood");
+		config.get("might", "effects", new String[] {"strength"});
+		config.get("might", "description", "The bull: Strength");
+		config.get("nighteyes", "block", "TowerOfBabel:totem_rabbit_head_wood");
+		config.get("nighteyes", "effects", new String[] {"night_vision"});
+		config.get("nighteyes", "description", "The rabbit's wide eyes: Night Vision");
 	}
 }

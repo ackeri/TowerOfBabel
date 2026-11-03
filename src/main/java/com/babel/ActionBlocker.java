@@ -39,6 +39,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.item.crafting.IRecipe;
 import net.minecraft.item.crafting.CraftingManager;
 import com.TowerOfBabel;
+import com.tower.Skill;
+import java.util.ArrayList;
 
 /*
  * Stops players from doing things with items they don't have the skills for.
@@ -176,7 +178,7 @@ public class ActionBlocker {
 
 		if(e.action == PlayerInteractEvent.Action.RIGHT_CLICK_AIR) {
 			if(itemDenied) {
-				cancelClient(e, p, useAction(i), i.getDisplayName());
+				cancelClient(e, p, useAction(i), SkillCache.nameOf(i), i.getDisplayName());
 			}
 			return;
 		}
@@ -187,16 +189,16 @@ public class ActionBlocker {
 		boolean blockCanReact = (!p.isSneaking() || i == null) && hasActivation(b);
 
 		if(blockDenied && (i == null || itemDenied)) {
-			cancelClient(e, p, Actions.INTERACT, b.getLocalizedName());
+			cancelClient(e, p, Actions.INTERACT, SkillCache.nameOf(b), b.getLocalizedName());
 		} else if(itemDenied && (blockDenied || !blockCanReact)) {
-			cancelClient(e, p, useAction(i), i.getDisplayName());
+			cancelClient(e, p, useAction(i), SkillCache.nameOf(i), i.getDisplayName());
 		}
 	}
 
-	private void cancelClient(PlayerInteractEvent e, EntityPlayer p, Actions a, String displayName) {
+	private void cancelClient(PlayerInteractEvent e, EntityPlayer p, Actions a, String name, String displayName) {
 		e.setCanceled(true);
 		//the server never hears about this click, so it can't send the message
-		tell(p, "Cannot " + a + " " + displayName);
+		tell(p, "Cannot " + a + " " + displayName + hint(a, name));
 	}
 
 	private static Actions useAction(ItemStack i) {
@@ -311,13 +313,38 @@ public class ActionBlocker {
 			return false;
 		}
 		if(!p.worldObj.isRemote) {
-			tell(p, "Cannot " + a + " " + displayName);
+			tell(p, "Cannot " + a + " " + displayName + hint(a, name));
 			if(a == Actions.USE || a == Actions.PLACE || a == Actions.INTERACT) {
 				//the client may have predicted the action happening, so put its inventory back
 				((EntityPlayerMP)p).sendContainerToPlayer(p.inventoryContainer);
 			}
 		}
 		return true;
+	}
+
+	/*
+	 * Which skills would allow an action, so a blocked player knows what to build
+	 */
+	public static String hint(Actions a, String name) {
+		if(name == null) return "";
+		List<String> needs = new ArrayList<String>();
+		for(Skill s : TowerOfBabel.skills.values()) {
+			for(Grant g : s.grants) {
+				if((g.actions & a.bit()) != 0 && g.pattern.matcher(name).matches()) {
+					needs.add(s.name);
+					break;
+				}
+			}
+		}
+		if(needs.isEmpty()) {
+			return " (no skill allows this)";
+		}
+		StringBuilder b = new StringBuilder(" (needs ");
+		for(int i = 0; i < needs.size(); i++) {
+			if(i > 0) b.append(i == needs.size() - 1 ? " or " : ", ");
+			b.append(needs.get(i));
+		}
+		return b.append(")").toString();
 	}
 
 	/*
