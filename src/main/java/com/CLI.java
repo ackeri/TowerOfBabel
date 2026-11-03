@@ -10,11 +10,12 @@ import net.minecraft.server.MinecraftServer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import com.babel.SkillCache;
 import com.tower.TowerData;
 
 public class CLI extends CommandBase{
 
-	private static final String USAGE = "/tower [player] <add|remove> <skill>  or  /tower [player] list";
+	private static final String USAGE = "/tower [player] <add|remove> <skill>  or  /tower [player] list  or  /tower reload";
 	private static final List<String> OPS = Arrays.asList("add", "remove", "list");
 
 	@Override
@@ -29,6 +30,16 @@ public class CLI extends CommandBase{
 
 	@Override
 	public void processCommand(ICommandSender ics, String[] args) throws CommandException {
+		if(args.length == 1 && "reload".equals(args[0])) {
+			TowerOfBabel.syncConfig();
+			SkillCache.clear();
+			for(Object o : MinecraftServer.getServer().getConfigurationManager().playerEntityList) {
+				SkillCache.sync((EntityPlayerMP)o);
+			}
+			ics.addChatMessage(new ChatComponentText("Reloaded " + TowerOfBabel.skills.size() + " skills; totem blocks need a restart"));
+			return;
+		}
+
 		//align arguments
 		EntityPlayerMP p;
 		if(args.length > 0 && OPS.contains(args[0])) {
@@ -70,6 +81,7 @@ public class CLI extends CommandBase{
 	public List addTabCompletionOptions(ICommandSender ics, String[] args) {
 		if(args.length == 1) {
 			List<String> options = new ArrayList<String>(OPS);
+			options.add("reload");
 			options.addAll(Arrays.asList(MinecraftServer.getServer().getAllUsernames()));
 			return getListOfStringsMatchingLastWord(args, options.toArray(new String[0]));
 		}

@@ -17,6 +17,7 @@ The server decides everything and sends each player their own permissions whenev
 refuses the same actions itself instead of showing blocks break, get placed or get crafted and then snap back.
 
 Ops can also hand out skills directly: `/tower [player] <add|remove> <skill>` and `/tower [player] list`.
+`/tower reload` re-reads the skills config without a restart (new totem blocks still need one).
 
 ## Configuration
 `config/TowerOfBabel.cfg` is generated with an example where iron and diamond tools and armor need the
