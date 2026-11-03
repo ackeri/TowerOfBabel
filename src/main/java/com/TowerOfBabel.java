@@ -28,6 +28,7 @@ import com.tower.TowerBase;
 import com.tower.Totems;
 import com.tower.SkillEffects;
 import com.babel.ActionBlocker;
+import com.babel.BabelChat;
 import com.babel.Grant;
 import com.babel.GrantSync;
 import com.babel.SkillCache;
@@ -52,6 +53,7 @@ public class TowerOfBabel
 	public static Logger log;
 	public static boolean dimensionSpecific;
 	public static boolean tagItemOwners;
+	public static boolean babelChat;
 	public static int maxTowerHeight;
 	public static List<Grant> defaultGrants = new ArrayList<Grant>();
 	public static Map<String, Skill> skills = new LinkedHashMap<String, Skill>();
@@ -86,6 +88,7 @@ public class TowerOfBabel
 		GameRegistry.addRecipe(new ItemStack(towerBase), "SSS", "SGS", "SSS", 'S', Blocks.stonebrick, 'G', Blocks.gold_block);
 		ActionBlocker.register();
 		SkillEffects.register();
+		BabelChat.register();
 	}
 
 	/*
@@ -130,6 +133,8 @@ public class TowerOfBabel
 			dimensionSpecific = config.getBoolean("dimensionSpecific", GENERAL, false,
 					"Default for skills that don't set it: only grant the skill while the owner is in the same dimension as their tower");
 			maxTowerHeight = config.getInt("maxTowerHeight", GENERAL, 32, 1, 255, "How many blocks above the base are checked for skill blocks");
+			babelChat = config.getBoolean("babelChat", GENERAL, false,
+					"The confusion of tongues: players only understand each other's chat as far as they share skills");
 			tagItemOwners = config.getBoolean("tagItemOwners", GENERAL, false,
 					"Tag items with the last player to pick them up so automated crafting uses that player's skills. "
 					+ "Tagged items don't stack with untagged ones. When false, automated crafting is never blocked");

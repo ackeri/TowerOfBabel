@@ -55,6 +55,12 @@ e.g. "Cannot hold Iron Sword (needs ironworking)". Active totems send enchanting
 Actions are `all` or a comma list of `wear,hold,carry,break,attack,use,interact,place,craft`.
 `general.defaultGrants` uses the same format for what every player can do without skills.
 
+## The confusion of tongues
+With `general.babelChat=true`, players only understand each other's chat as far as they share skills. Players
+with the same skills chat normally; the more their towers differ, the more of each other's words come out as
+babble. Each speaker's babble is consistent, so a word always garbles the same way. Players with no skills
+understand each other, so the confusion only grows as people specialize.
+
 ## Totems
 `config/TowerOfBabel-totems.cfg` defines totem blocks to use as skill blocks. Each category becomes a block
 registered as `TowerOfBabel:totem_<category>`, so a skill can use `S:block=TowerOfBabel:totem_bull_stone`.
