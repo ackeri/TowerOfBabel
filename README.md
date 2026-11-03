@@ -55,6 +55,11 @@ e.g. "Cannot hold Iron Sword (needs ironworking)". Active totems send enchanting
 Actions are `all` or a comma list of `wear,hold,carry,break,attack,use,interact,place,craft`.
 `general.defaultGrants` uses the same format for what every player can do without skills.
 
+## Hubris
+A tower that reaches too high tempts fate: during thunderstorms, towers with at least `general.hubrisHeight`
+working totems (default 6, 0 turns it off) have a `general.hubrisChance` chance every 5 seconds (default 2%)
+of being struck by lightning, which knocks off the top totem.
+
 ## Totems
 `config/TowerOfBabel-totems.cfg` defines totem blocks to use as skill blocks. Each category becomes a block
 registered as `TowerOfBabel:totem_<category>`, so a skill can use `S:block=TowerOfBabel:totem_bull_stone`.

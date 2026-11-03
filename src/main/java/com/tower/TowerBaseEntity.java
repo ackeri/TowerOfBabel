@@ -1,6 +1,7 @@
 package com.tower;
 
 import net.minecraft.block.Block;
+import net.minecraft.entity.effect.EntityLightningBolt;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.nbt.NBTTagCompound;
@@ -47,6 +48,9 @@ public class TowerBaseEntity extends TileEntity {
 			markDirty();
 			worldObj.markBlockForUpdate(xCoord, yCoord, zCoord);
 		}
+		if(worldObj.getTotalWorldTime() % 100 == 0) {
+			hubris();
+		}
 		if(now.equals(skills)) return;
 
 		List<String> before = skills;
@@ -69,6 +73,25 @@ public class TowerBaseEntity extends TileEntity {
 					p.addChatComponentMessage(new ChatComponentText("Your tower no longer grants you " + s));
 				}
 			}
+		}
+	}
+
+	/*
+	 * Like the tower of Babel, a tower that reaches too high in a storm gets struck down: lightning knocks
+	 * off its top totem
+	 */
+	private void hubris() {
+		int limit = TowerOfBabel.hubrisHeight;
+		if(limit <= 0 || levels.size() < limit || !worldObj.isThundering()) return;
+		if(worldObj.rand.nextFloat() >= TowerOfBabel.hubrisChance) return;
+
+		int top = yCoord + levels.get(levels.size() - 1);
+		worldObj.addWeatherEffect(new EntityLightningBolt(worldObj, xCoord + 0.5, top + 1, zCoord + 0.5));
+		worldObj.func_147480_a(xCoord, top, zCoord, true);
+
+		EntityPlayerMP p = TowerData.findPlayer(owner);
+		if(p != null) {
+			p.addChatComponentMessage(new ChatComponentText("Your tower reached too high, and the storm struck it down"));
 		}
 	}
 

@@ -52,6 +52,8 @@ public class TowerOfBabel
 	public static Logger log;
 	public static boolean dimensionSpecific;
 	public static boolean tagItemOwners;
+	public static int hubrisHeight;
+	public static float hubrisChance;
 	public static int maxTowerHeight;
 	public static List<Grant> defaultGrants = new ArrayList<Grant>();
 	public static Map<String, Skill> skills = new LinkedHashMap<String, Skill>();
@@ -130,6 +132,10 @@ public class TowerOfBabel
 			dimensionSpecific = config.getBoolean("dimensionSpecific", GENERAL, false,
 					"Default for skills that don't set it: only grant the skill while the owner is in the same dimension as their tower");
 			maxTowerHeight = config.getInt("maxTowerHeight", GENERAL, 32, 1, 255, "How many blocks above the base are checked for skill blocks");
+			hubrisHeight = config.getInt("hubrisHeight", GENERAL, 6, 0, 255,
+					"Towers with at least this many working totems can be struck by lightning in thunderstorms, losing their top totem. 0 turns it off");
+			hubrisChance = config.getFloat("hubrisChance", GENERAL, 0.02f, 0, 1,
+					"Chance every 5 seconds of a thunderstorm that a tall enough tower is struck");
 			tagItemOwners = config.getBoolean("tagItemOwners", GENERAL, false,
 					"Tag items with the last player to pick them up so automated crafting uses that player's skills. "
 					+ "Tagged items don't stack with untagged ones. When false, automated crafting is never blocked");
