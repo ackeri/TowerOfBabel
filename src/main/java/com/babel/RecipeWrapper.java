@@ -6,21 +6,24 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.world.World;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import java.util.UUID;
-
-import java.util.List;
-
-import java.lang.reflect.Field;
 import net.minecraft.inventory.Container;
+import cpw.mods.fml.relauncher.ReflectionHelper;
+import java.util.List;
+import java.util.UUID;
+import com.TowerOfBabel;
 
+/*
+ * Wraps a crafting recipe so it only matches for players allowed to craft its output
+ */
 public class RecipeWrapper implements IRecipe {
 	private IRecipe recipe;
-	private ItemStack out;
-	public static UUID localPlayer;
 
 	public RecipeWrapper(IRecipe rec) {
 		recipe = rec;
-		out = recipe.getRecipeOutput();
+	}
+
+	public IRecipe getWrapped() {
+		return recipe;
 	}
 
 	public ItemStack getCraftingResult(InventoryCrafting ic) {
@@ -36,53 +39,71 @@ public class RecipeWrapper implements IRecipe {
 	}
 
 	public boolean matches(InventoryCrafting ic, World w) {
-		return recipe.matches(ic, w) && check(ic,w);
+		if(!recipe.matches(ic, w)) {
+			return false;
+		}
+		if(w == null) {
+			return true;
+		}
+
+		ItemStack out = recipe.getRecipeOutput();
+		if(out == null) {
+			out = recipe.getCraftingResult(ic);
+		}
+		if(out == null || out.getItem() == null) {
+			return true;
+		}
+
+		//both sides check, so the client doesn't show an output the server won't give
+		EntityPlayer crafter = findCrafter(ic, w);
+		if(crafter != null) {
+			return !ActionBlocker.shouldCancel(crafter, Actions.CRAFT, out);
+		}
+
+		//no player is looking at this crafting grid, so it is automation
+		if(w.isRemote || !TowerOfBabel.tagItemOwners) {
+			return true;
+		}
+		return taggedOwnerCan(ic, w, SkillCache.nameOf(out));
 	}
 
-	private boolean check(InventoryCrafting ic, World w) {
+	/*
+	 * Allows crafting if any ingredient was last handled by a player who can craft the output
+	 */
+	private boolean taggedOwnerCan(InventoryCrafting ic, World w, String name) {
 		for(int slot = 0; slot < ic.getSizeInventory(); slot++) {
 			ItemStack is = ic.getStackInSlot(slot);
-			if(is != null) {
-				NBTTagCompound nbt = is.stackTagCompound;
-				if(nbt != null) {
-					Long val = nbt.getLong("TowerUser");
-					if(val != null) {
-						if(SkillCache.can(val, Actions.CRAFT, recipe.getRecipeOutput())) {
-							return true;
-						}
+			if(is != null && is.stackTagCompound != null && is.stackTagCompound.hasKey(ActionBlocker.OWNER_TAG)) {
+				try {
+					UUID owner = UUID.fromString(is.stackTagCompound.getString(ActionBlocker.OWNER_TAG));
+					if(SkillCache.can(owner, w.provider.dimensionId, Actions.CRAFT, name)) {
+						return true;
 					}
+				} catch(IllegalArgumentException ex) {
+					//not a tag we wrote
 				}
 			}
 		}
 		return false;
 	}
 
-	private static Field containerField; 
-	private boolean check2(InventoryCrafting ic, World w) {
-		if(containerField == null) {
-			try {
-				containerField = InventoryCrafting.class.getDeclaredField("eventHandler");
-				containerField.setAccessible(true);
-			} catch (Exception ex) {
-					throw new UnsupportedOperationException("unsupported forge version for Tower of Babel");
-			}
-		}
-
+	private EntityPlayer findCrafter(InventoryCrafting ic, World w) {
+		Container cont;
 		try {
-			Container cont = (Container)containerField.get(ic);
-
-			List<EntityPlayer> ps = w.playerEntities;
-			for(int i = 0; i < ps.size(); i++) {
-				
-				if(!cont.isPlayerNotUsingContainer(ps.get(i))) {
-					if(SkillCache.can(ps.get(i).getUniqueID(),Actions.CRAFT,out)) {
-						return true;
-					}
-				}
-			}
-		} catch (IllegalAccessException ex) {
-			//we already set accessible, so should never happen
+			cont = ReflectionHelper.getPrivateValue(InventoryCrafting.class, ic, "eventHandler", "field_70465_c");
+		} catch(Exception ex) {
+			return null;
 		}
-		return false;
+		if(cont == null) {
+			return null;
+		}
+
+		List<EntityPlayer> ps = w.playerEntities;
+		for(EntityPlayer p : ps) {
+			if(p.openContainer == cont) {
+				return p;
+			}
+		}
+		return null;
 	}
 }
