@@ -80,6 +80,10 @@ with the same skills chat normally; the more their towers differ, the more of ea
 babble. Each speaker's babble is consistent, so a word always garbles the same way. Players with no skills
 understand each other, so the confusion only grows as people specialize.
 
+A skill with `B:polyglot=true` understands everyone and is understood by everyone, which makes a translator
+a role worth filling. In the default config that's the rabbit head carved in cobblestone, on top of the
+night eyes totem.
+
 ## Totems
 `config/TowerOfBabel-totems.cfg` defines totem blocks to use as skill blocks. Each category becomes a block
 registered as `TowerOfBabel:totem_<category>`, so a skill can use `S:block=TowerOfBabel:totem_bull_stone`.

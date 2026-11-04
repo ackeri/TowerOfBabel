@@ -31,12 +31,23 @@ public class BabelChat {
 		MinecraftServer server = MinecraftServer.getServer();
 		server.addChatMessage(e.component);
 		Set<String> speaker = skillNames(e.player);
+		boolean speakerPolyglot = polyglot(e.player);
 		for(Object o : server.getConfigurationManager().playerEntityList) {
 			EntityPlayerMP listener = (EntityPlayerMP)o;
-			double babble = listener == e.player ? 0 : babble(speaker, skillNames(listener));
+			boolean understood = listener == e.player || speakerPolyglot || polyglot(listener);
+			double babble = understood ? 0 : babble(speaker, skillNames(listener));
 			String heard = scramble(e.message, babble, e.player.getCommandSenderName());
 			listener.addChatMessage(new ChatComponentTranslation("chat.type.text", e.player.func_145748_c_(), heard));
 		}
+	}
+
+	private static boolean polyglot(EntityPlayerMP p) {
+		for(Skill s : SkillCache.activeSkills(p.getUniqueID(), p.dimension)) {
+			if(s.polyglot) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private static Set<String> skillNames(EntityPlayerMP p) {

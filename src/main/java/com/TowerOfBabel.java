@@ -213,5 +213,9 @@ public class TowerOfBabel
 		config.get("nighteyes", "block", "TowerOfBabel:totem_rabbit_head_wood");
 		config.get("nighteyes", "effects", new String[] {"night_vision"});
 		config.get("nighteyes", "description", "The rabbit's wide eyes: Night Vision");
+		config.get("polyglot", "block", "TowerOfBabel:totem_rabbit_head_cobblestone");
+		config.get("polyglot", "prereqs", new String[] {"nighteyes"});
+		config.get("polyglot", "polyglot", true);
+		config.get("polyglot", "description", "The rabbit's long ears: understand every tongue, and be understood (with babelChat on)");
 	}
 }

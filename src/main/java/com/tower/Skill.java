@@ -30,6 +30,8 @@ public class Skill {
 	public final String description;
 	// skills that can't be in the same tower as this one
 	public final Set<String> excludes;
+	// understands and is understood by everyone, whatever babel chat says
+	public boolean polyglot;
 
 	public Skill(String name, Block block, int meta, Set<String> prereqs, int[] heights, List<Grant> grants, boolean dimensionSpecific,
 			List<int[]> effects, String description, Set<String> excludes) {
@@ -112,8 +114,12 @@ public class Skill {
 		for(String e : effects) {
 			parsedEffects.add(parseEffect(e));
 		}
-		return new Skill(name, block, meta, new HashSet<String>(Arrays.asList(prereqs)), heights, parsed, dimSpecific, parsedEffects, description,
+		boolean polyglot = config.getBoolean("polyglot", name, false,
+				"With babelChat on: whoever has this skill understands everyone, and everyone understands them");
+		Skill skill = new Skill(name, block, meta, new HashSet<String>(Arrays.asList(prereqs)), heights, parsed, dimSpecific, parsedEffects, description,
 				new HashSet<String>(Arrays.asList(excludes)));
+		skill.polyglot = polyglot;
+		return skill;
 	}
 
 	/*
