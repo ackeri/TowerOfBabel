@@ -30,6 +30,8 @@ public class Skill {
 	public final String description;
 	// skills that can't be in the same tower as this one
 	public final Set<String> excludes;
+	// how many players can hold this skill from towers at once, 0 for any number
+	public int seats;
 
 	public Skill(String name, Block block, int meta, Set<String> prereqs, int[] heights, List<Grant> grants, boolean dimensionSpecific,
 			List<int[]> effects, String description, Set<String> excludes) {
@@ -112,8 +114,12 @@ public class Skill {
 		for(String e : effects) {
 			parsedEffects.add(parseEffect(e));
 		}
-		return new Skill(name, block, meta, new HashSet<String>(Arrays.asList(prereqs)), heights, parsed, dimSpecific, parsedEffects, description,
+		int seats = config.getInt("seats", name, 0, 0, 1000,
+				"How many players can hold this skill from their towers at once; later towers wait for a seat to free up. 0 means no limit");
+		Skill skill = new Skill(name, block, meta, new HashSet<String>(Arrays.asList(prereqs)), heights, parsed, dimSpecific, parsedEffects, description,
 				new HashSet<String>(Arrays.asList(excludes)));
+		skill.seats = seats;
+		return skill;
 	}
 
 	/*

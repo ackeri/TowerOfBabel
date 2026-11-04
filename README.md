@@ -74,6 +74,11 @@ along with who has it. Active totems send enchanting glyphs down to the base.
 Actions are `all` or a comma list of `wear,hold,carry,break,attack,use,interact,place,craft`.
 `general.defaultGrants` uses the same format for what every player can do without skills.
 
+## Seats
+A skill with `I:seats=N` can only be held from towers by N players at once, first come first served. Anyone else
+with the totem waits, and their totem starts working when a holder's tower loses it. `/tower who` shows how
+many seats are taken. In the default config only two players can be master smiths.
+
 ## Totems
 `config/TowerOfBabel-totems.cfg` defines totem blocks to use as skill blocks. Each category becomes a block
 registered as `TowerOfBabel:totem_<category>`, so a skill can use `S:block=TowerOfBabel:totem_bull_stone`.

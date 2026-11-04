@@ -53,6 +53,9 @@ public class Tooltips {
 					for(int h : s.heights) levels.add(String.valueOf(h));
 					tip.add(EnumChatFormatting.GRAY + "  Only counts at level " + join(levels));
 				}
+				if(s.seats > 0) {
+					tip.add(EnumChatFormatting.GRAY + "  Only " + s.seats + " player" + (s.seats == 1 ? "" : "s") + " can hold this at once");
+				}
 				if(!s.excludes.isEmpty()) {
 					tip.add(EnumChatFormatting.GRAY + "  Can't share a tower with: " + join(new ArrayList<String>(s.excludes)));
 				}

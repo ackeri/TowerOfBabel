@@ -91,6 +91,19 @@ public class TowerData extends WorldSavedData {
 		return out;
 	}
 
+	/*
+	 * Players whose tower currently grants a skill
+	 */
+	public List<UUID> towerHoldersOf(String skill) {
+		List<UUID> out = new ArrayList<UUID>();
+		for(Map.Entry<UUID, Tower> e : towers.entrySet()) {
+			if(e.getValue().skills.contains(skill)) {
+				out.add(e.getKey());
+			}
+		}
+		return out;
+	}
+
 	public static String nameOf(UUID id) {
 		EntityPlayerMP p = findPlayer(id);
 		if(p != null) {

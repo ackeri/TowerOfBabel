@@ -13,6 +13,7 @@ import java.util.List;
 import com.babel.ActionBlocker;
 import com.babel.SkillCache;
 import java.util.UUID;
+import com.tower.Skill;
 import com.tower.TowerData;
 
 public class CLI extends CommandBase{
@@ -65,7 +66,9 @@ public class CLI extends CommandBase{
 				for(UUID id : data.holdersOf(skill)) {
 					names.add(TowerData.nameOf(id));
 				}
-				ics.addChatMessage(new ChatComponentText(skill + ": " + (names.isEmpty() ? "nobody" : ActionBlocker.join(names, " and "))));
+				Skill sk = TowerOfBabel.skills.get(skill);
+				String seats = sk != null && sk.seats > 0 ? " (" + data.towerHoldersOf(skill).size() + "/" + sk.seats + " seats taken)" : "";
+				ics.addChatMessage(new ChatComponentText(skill + seats + ": " + (names.isEmpty() ? "nobody" : ActionBlocker.join(names, " and "))));
 			}
 			return;
 		}

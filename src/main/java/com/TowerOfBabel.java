@@ -183,6 +183,7 @@ public class TowerOfBabel
 		config.get("mastersmithing", "prereqs", new String[] {"smithing"});
 		config.get("mastersmithing", "grants", new String[] {"craft,carry:minecraft:diamond" + gear});
 		config.get("mastersmithing", "description", "The tools, carved deeper: forge diamond tools and armor");
+		config.get("mastersmithing", "seats", 2);
 
 		config.get("ironclad", "block", "minecraft:iron_block");
 		config.get("ironclad", "grants", new String[] {"wear,hold,carry,break,attack,use:minecraft:iron" + gear});

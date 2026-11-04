@@ -28,6 +28,9 @@ public class TowerBaseEntity extends TileEntity {
 	// whether the last scan found skill blocks past the tower's capacity, so the owner is told once
 	private boolean full;
 	private boolean scanFull;
+	// skills this tower has the totem for but whose seats are all taken, so the owner is told once
+	private Set<String> waiting = new HashSet<String>();
+	private Set<String> scanWaiting = new HashSet<String>();
 
 	public UUID getOwner() {
 		return owner;
@@ -53,6 +56,18 @@ public class TowerBaseEntity extends TileEntity {
 			}
 		}
 		full = scanFull;
+		for(String s : scanWaiting) {
+			if(!waiting.contains(s)) {
+				EntityPlayerMP p = TowerData.findPlayer(owner);
+				if(p != null) {
+					List<String> names = new ArrayList<String>();
+					for(UUID id : TowerData.get().towerHoldersOf(s)) names.add(TowerData.nameOf(id));
+					p.addChatComponentMessage(new ChatComponentText("Every seat of " + s + " is taken (" + String.join(", ", names)
+							+ "); your totem will work when one frees up"));
+				}
+			}
+		}
+		waiting = scanWaiting;
 		if(!nowLevels.equals(levels)) {
 			levels = nowLevels;
 			markDirty();
@@ -91,6 +106,7 @@ public class TowerBaseEntity extends TileEntity {
 		List<String> found = new ArrayList<String>();
 		Set<String> have = new HashSet<String>();
 		scanFull = false;
+		scanWaiting = new HashSet<String>();
 
 		for(int level = 1; level <= TowerOfBabel.maxTowerHeight && yCoord + level < worldObj.getHeight(); level++) {
 			Block b = worldObj.getBlock(xCoord, yCoord + level, zCoord);
@@ -111,12 +127,42 @@ public class TowerBaseEntity extends TileEntity {
 			if(atCapacity && !have.contains(skill.name)) {
 				scanFull = true;
 			}
-			if(!atCapacity && skill.allowedAt(level) && have.containsAll(skill.prereqs) && !skill.excludedBy(have) && have.add(skill.name)) {
+			boolean eligible = !atCapacity && !have.contains(skill.name) && skill.allowedAt(level)
+					&& have.containsAll(skill.prereqs) && !skill.excludedBy(have);
+			if(eligible && !seatFree(skill)) {
+				scanWaiting.add(skill.name);
+			} else if(eligible) {
+				have.add(skill.name);
 				found.add(skill.name);
 				levelsOut.add(level);
 			}
 		}
 		return found;
+	}
+
+	/*
+	 * Whether this tower's owner may hold a skill with limited seats. Only towers take seats (skills given by
+	 * command don't). Someone already holding the skill keeps it while fewer than seats other holders rank ahead of
+	 * them, so lowering seats in the config drops the same holders every time instead of flickering; anyone new
+	 * waits until fewer than seats others hold it.
+	 */
+	private boolean seatFree(Skill skill) {
+		if(skill.seats <= 0) {
+			return true;
+		}
+		TowerData data = TowerData.get();
+		List<UUID> others = data.towerHoldersOf(skill.name);
+		boolean holding = others.remove(owner);
+		if(!holding) {
+			return others.size() < skill.seats;
+		}
+		int ahead = 0;
+		for(UUID id : others) {
+			if(id.toString().compareTo(owner.toString()) < 0) {
+				ahead++;
+			}
+		}
+		return ahead < skill.seats;
 	}
 
 	public String describe() {
