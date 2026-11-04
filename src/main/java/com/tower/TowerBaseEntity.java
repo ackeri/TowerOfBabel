@@ -31,6 +31,7 @@ public class TowerBaseEntity extends TileEntity {
 	// skills this tower has the totem for but whose seats are all taken, so the owner is told once
 	private Set<String> waiting = new HashSet<String>();
 	private Set<String> scanWaiting = new HashSet<String>();
+	private TowerData.Capacity capacity;
 
 	public UUID getOwner() {
 		return owner;
@@ -51,8 +52,10 @@ public class TowerBaseEntity extends TileEntity {
 		if(scanFull && !full) {
 			EntityPlayerMP p = TowerData.findPlayer(owner);
 			if(p != null) {
-				p.addChatComponentMessage(new ChatComponentText("Your tower is full: only " + TowerOfBabel.towerCapacity
-						+ " skills count, so totems above that do nothing"));
+				String why = capacity.limitedBy != null
+						? "it can't be more than " + TowerOfBabel.towerVariance + " skills taller than " + TowerData.nameOf(capacity.limitedBy) + "'s"
+						: "only " + capacity.limit + " skills count";
+				p.addChatComponentMessage(new ChatComponentText("Your tower is full: " + why + ", so totems above that do nothing for now"));
 			}
 		}
 		full = scanFull;
@@ -107,6 +110,7 @@ public class TowerBaseEntity extends TileEntity {
 		Set<String> have = new HashSet<String>();
 		scanFull = false;
 		scanWaiting = new HashSet<String>();
+		capacity = TowerData.get().capacityFor(owner);
 
 		for(int level = 1; level <= TowerOfBabel.maxTowerHeight && yCoord + level < worldObj.getHeight(); level++) {
 			Block b = worldObj.getBlock(xCoord, yCoord + level, zCoord);
@@ -123,7 +127,7 @@ public class TowerBaseEntity extends TileEntity {
 				break;
 			}
 
-			boolean atCapacity = TowerOfBabel.towerCapacity > 0 && found.size() >= TowerOfBabel.towerCapacity;
+			boolean atCapacity = capacity.limit >= 0 && found.size() >= capacity.limit;
 			if(atCapacity && !have.contains(skill.name)) {
 				scanFull = true;
 			}
@@ -169,7 +173,7 @@ public class TowerBaseEntity extends TileEntity {
 		if(owner == null) {
 			return "This tower has no owner";
 		}
-		String room = TowerOfBabel.towerCapacity > 0 ? " (" + skills.size() + "/" + TowerOfBabel.towerCapacity + " skills)" : "";
+		String room = capacity != null && capacity.limit >= 0 ? " (" + skills.size() + "/" + capacity.limit + " skills)" : "";
 		return ownerName + "'s tower grants: " + (skills.isEmpty() ? "nothing yet" : String.join(", ", skills)) + room;
 	}
 

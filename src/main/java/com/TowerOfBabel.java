@@ -54,6 +54,8 @@ public class TowerOfBabel
 	public static boolean tagItemOwners;
 	public static int maxTowerHeight;
 	public static int towerCapacity;
+	public static int towerVariance;
+	public static int towerActiveDays;
 	public static List<Grant> defaultGrants = new ArrayList<Grant>();
 	public static Map<String, Skill> skills = new LinkedHashMap<String, Skill>();
 
@@ -130,9 +132,13 @@ public class TowerOfBabel
 			config.setCategoryComment(GENERAL, "Every other category in this file defines a skill");
 			dimensionSpecific = config.getBoolean("dimensionSpecific", GENERAL, false,
 					"Default for skills that don't set it: only grant the skill while the owner is in the same dimension as their tower");
-			towerCapacity = config.getInt("towerCapacity", GENERAL, 6, 0, 255,
-					"How many skills one tower can hold; totems above that don't count. Keeps players from learning everything, "
-					+ "so they specialize and trade. 0 means no limit");
+			towerVariance = config.getInt("towerVariance", GENERAL, 3, 0, 255,
+					"A tower can hold at most this many more skills than the shortest other active tower, so nobody gets far ahead "
+					+ "and players specialize instead of learning everything. 0 turns it off");
+			towerActiveDays = config.getInt("towerActiveDays", GENERAL, 7, 1, 3650,
+					"Towers of players who haven't been online for this many days don't count towards towerVariance");
+			towerCapacity = config.getInt("towerCapacity", GENERAL, 0, 0, 255,
+					"A fixed limit on how many skills one tower can hold, on top of towerVariance. 0 means no fixed limit");
 			maxTowerHeight = config.getInt("maxTowerHeight", GENERAL, 32, 1, 255, "How many blocks above the base are checked for skill blocks");
 			tagItemOwners = config.getBoolean("tagItemOwners", GENERAL, false,
 					"Tag items with the last player to pick them up so automated crafting uses that player's skills. "

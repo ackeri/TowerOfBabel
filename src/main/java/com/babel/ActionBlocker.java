@@ -85,6 +85,7 @@ public class ActionBlocker {
 	@SubscribeEvent
 	public void login(PlayerLoggedInEvent e) {
 		if(e.player instanceof EntityPlayerMP) {
+			TowerData.get().seen(e.player.getUniqueID());
 			SkillCache.sync((EntityPlayerMP)e.player);
 		}
 	}
@@ -268,6 +269,7 @@ public class ActionBlocker {
 	@SubscribeEvent
 	public void logout(PlayerLoggedOutEvent e) {
 		UUID id = e.player.getUniqueID();
+		TowerData.get().seen(id);
 		lastSeen.remove(id);
 		lastMessage.remove(id);
 		lastMessageTime.remove(id);

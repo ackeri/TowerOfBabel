@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import com.TowerOfBabel;
 import com.babel.SkillCache;
 
 /*
@@ -46,6 +47,8 @@ public class TowerData extends WorldSavedData {
 	}
 
 	private final Map<UUID, Tower> towers = new HashMap<UUID, Tower>();
+	// when each player was last online, so towers of players who stopped playing don't hold everyone back
+	private final Map<UUID, Long> lastSeen = new HashMap<UUID, Long>();
 	// skills given by the /tower command
 	private final Map<UUID, Set<String>> adminSkills = new HashMap<UUID, Set<String>>();
 
@@ -113,6 +116,53 @@ public class TowerData extends WorldSavedData {
 		return profile != null ? profile.getName() : id.toString().substring(0, 8);
 	}
 
+	public void seen(UUID player) {
+		lastSeen.put(player, System.currentTimeMillis());
+		markDirty();
+	}
+
+	private boolean active(UUID player) {
+		if(findPlayer(player) != null) {
+			return true;
+		}
+		Long seen = lastSeen.get(player);
+		return seen != null && System.currentTimeMillis() - seen < TowerOfBabel.towerActiveDays * 24L * 60 * 60 * 1000;
+	}
+
+	/*
+	 * How many skills a tower may hold: the fixed cap, and/or no more than towerVariance above the shortest other
+	 * active tower. limit is -1 for no limit; limitedBy is whose tower set it, when that was the variance.
+	 */
+	public static class Capacity {
+		public final int limit;
+		public final UUID limitedBy;
+
+		Capacity(int limit, UUID limitedBy) {
+			this.limit = limit;
+			this.limitedBy = limitedBy;
+		}
+	}
+
+	public Capacity capacityFor(UUID owner) {
+		int limit = TowerOfBabel.towerCapacity > 0 ? TowerOfBabel.towerCapacity : -1;
+		UUID by = null;
+		if(TowerOfBabel.towerVariance > 0) {
+			int shortest = Integer.MAX_VALUE;
+			for(Map.Entry<UUID, Tower> e : towers.entrySet()) {
+				if(!e.getKey().equals(owner) && active(e.getKey()) && e.getValue().skills.size() < shortest) {
+					shortest = e.getValue().skills.size();
+					by = e.getKey();
+				}
+			}
+			if(by != null && (limit < 0 || shortest + TowerOfBabel.towerVariance < limit)) {
+				limit = shortest + TowerOfBabel.towerVariance;
+			} else {
+				by = null;
+			}
+		}
+		return new Capacity(limit, by);
+	}
+
 	public Tower getTower(UUID owner) {
 		return towers.get(owner);
 	}
@@ -178,6 +228,7 @@ public class TowerData extends WorldSavedData {
 	public void readFromNBT(NBTTagCompound tag) {
 		towers.clear();
 		adminSkills.clear();
+		lastSeen.clear();
 
 		NBTTagList list = tag.getTagList("towers", 10);
 		for(int i = 0; i < list.tagCount(); i++) {
@@ -191,6 +242,12 @@ public class TowerData extends WorldSavedData {
 		for(int i = 0; i < list.tagCount(); i++) {
 			NBTTagCompound c = list.getCompoundTagAt(i);
 			adminSkills.put(UUID.fromString(c.getString("player")), new HashSet<String>(readStrings(c.getTagList("skills", 8))));
+		}
+
+		list = tag.getTagList("lastSeen", 10);
+		for(int i = 0; i < list.tagCount(); i++) {
+			NBTTagCompound c = list.getCompoundTagAt(i);
+			lastSeen.put(UUID.fromString(c.getString("player")), c.getLong("time"));
 		}
 	}
 
@@ -218,6 +275,15 @@ public class TowerData extends WorldSavedData {
 			list.appendTag(c);
 		}
 		tag.setTag("adminSkills", list);
+
+		list = new NBTTagList();
+		for(Map.Entry<UUID, Long> e : lastSeen.entrySet()) {
+			NBTTagCompound c = new NBTTagCompound();
+			c.setString("player", e.getKey().toString());
+			c.setLong("time", e.getValue());
+			list.appendTag(c);
+		}
+		tag.setTag("lastSeen", list);
 	}
 
 	public static List<String> readStrings(NBTTagList list) {
