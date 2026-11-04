@@ -1,5 +1,6 @@
 package com.tower;
 
+import com.mojang.authlib.GameProfile;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
@@ -70,6 +71,33 @@ public class TowerData extends WorldSavedData {
 			}
 		}
 		return null;
+	}
+
+	/*
+	 * Everyone with a skill, from their tower or given by command, online or not
+	 */
+	public List<UUID> holdersOf(String skill) {
+		List<UUID> out = new ArrayList<UUID>();
+		for(Map.Entry<UUID, Tower> e : towers.entrySet()) {
+			if(e.getValue().skills.contains(skill)) {
+				out.add(e.getKey());
+			}
+		}
+		for(Map.Entry<UUID, Set<String>> e : adminSkills.entrySet()) {
+			if(e.getValue().contains(skill) && !out.contains(e.getKey())) {
+				out.add(e.getKey());
+			}
+		}
+		return out;
+	}
+
+	public static String nameOf(UUID id) {
+		EntityPlayerMP p = findPlayer(id);
+		if(p != null) {
+			return p.getCommandSenderName();
+		}
+		GameProfile profile = MinecraftServer.getServer().func_152358_ax().func_152652_a(id);
+		return profile != null ? profile.getName() : id.toString().substring(0, 8);
 	}
 
 	public Tower getTower(UUID owner) {

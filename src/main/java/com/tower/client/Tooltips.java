@@ -33,6 +33,9 @@ public class Tooltips {
 		Block block = Block.getBlockFromItem(e.itemStack.getItem());
 		if(block instanceof TowerBase) {
 			tip.add(EnumChatFormatting.GRAY + "Place to claim a tower; stack skill blocks on top");
+			if(TowerOfBabel.towerCapacity > 0) {
+				tip.add(EnumChatFormatting.GRAY + "A tower holds up to " + TowerOfBabel.towerCapacity + " skills");
+			}
 		}
 		if(block != null) {
 			for(Skill s : TowerOfBabel.skills.values()) {
@@ -49,6 +52,9 @@ public class Tooltips {
 					List<String> levels = new ArrayList<String>();
 					for(int h : s.heights) levels.add(String.valueOf(h));
 					tip.add(EnumChatFormatting.GRAY + "  Only counts at level " + join(levels));
+				}
+				if(!s.excludes.isEmpty()) {
+					tip.add(EnumChatFormatting.GRAY + "  Can't share a tower with: " + join(new ArrayList<String>(s.excludes)));
 				}
 				if(s.dimensionSpecific) {
 					tip.add(EnumChatFormatting.GRAY + "  Only works in the tower's dimension");

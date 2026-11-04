@@ -16,21 +16,40 @@ Recipe: a gold block surrounded by stone bricks.
 The server decides everything and sends each player their own permissions whenever they change, so the client
 refuses the same actions itself instead of showing blocks break, get placed or get crafted and then snap back.
 
-Ops can also hand out skills directly: `/tower [player] <add|remove> <skill>` and `/tower [player] list`.
+A tower only holds `general.towerCapacity` skills (default 6); totems above that don't count.
+
+`/tower who [skill]` lists who has which skills and `/tower [player] list` shows a player's skills; anyone can
+use those. Ops can hand out skills directly with `/tower [player] <add|remove> <skill>`, and `/tower reload`
+re-reads the skills config without a restart (new totem blocks still need one).
+
+## Playing together
+The mod is built to push a group of players into different roles and then make them need each other:
+
+- **Scarcity:** a tower holds a limited number of skills, and skills can exclude each other, so nobody can learn
+  everything and every player's tower is a choice.
+- **Interdependence:** making and using are separate skills. In the default config smiths forge iron and
+  diamond gear but can't use it, and the ironclad can use it but not make it, so gear has to change hands.
+- **Discoverability:** when an action is blocked the message names the skill needed and who already has it,
+  e.g. "Cannot carry Iron Sword (needs ironclad or smithing; Alice has it)", and `/tower who` lists everyone.
+
+The default config is an example of that: `smithing`/`mastersmithing` (tools totems) make iron/diamond gear,
+`ironclad`/`diamondclad` (iron and diamond blocks) use it, and `swiftness` (the running rabbit) and `might`
+(the bull) exclude each other.
 
 ## Configuration
-`config/TowerOfBabel.cfg` is generated with an example where iron and diamond tools and armor need the
-`ironworking` and `diamondworking` skills. Every category other than `general` is a skill:
+`config/TowerOfBabel.cfg` is generated with the example above. Every category other than `general` is a skill:
 
 ```
-ironworking {
+ironclad {
     S:block=minecraft:iron_block       # block that grants it, modid:name or modid:name:meta
     S:prereqs <                        # skills that must be lower in the same tower
+     >
+    S:excludes <                       # skills that can't share a tower with this one
      >
     I:heights <                        # tower levels it counts at (1 = directly on the base), empty = any
      >
     S:grants <                         # actions:regex over registry names
-        all:minecraft:iron_(sword|shovel|pickaxe|axe|hoe|helmet|chestplate|leggings|boots)
+        wear,hold,carry,break,attack,use:minecraft:iron_(sword|shovel|pickaxe|axe|hoe|helmet|chestplate|leggings|boots)
      >
     B:dimensionSpecific=false          # only applies while the owner is in the tower's dimension
 }
@@ -50,7 +69,7 @@ might {
 
 Hovering a skill block shows which skill it grants, what it does and where it has to go in the tower, and
 any item the player is locked out of says which skill they need. Blocked actions say the same in chat,
-e.g. "Cannot hold Iron Sword (needs ironworking)". Active totems send enchanting glyphs down to the base.
+along with who has it. Active totems send enchanting glyphs down to the base.
 
 Actions are `all` or a comma list of `wear,hold,carry,break,attack,use,interact,place,craft`.
 `general.defaultGrants` uses the same format for what every player can do without skills.
