@@ -28,9 +28,11 @@ public class Skill {
 	// potion effects held while the skill is active, as {potion id, amplifier}
 	public final List<int[]> effects;
 	public final String description;
+	// skills that can't be in the same tower as this one
+	public final Set<String> excludes;
 
 	public Skill(String name, Block block, int meta, Set<String> prereqs, int[] heights, List<Grant> grants, boolean dimensionSpecific,
-			List<int[]> effects, String description) {
+			List<int[]> effects, String description, Set<String> excludes) {
 		this.name = name;
 		this.block = block;
 		this.meta = meta;
@@ -40,10 +42,27 @@ public class Skill {
 		this.dimensionSpecific = dimensionSpecific;
 		this.effects = effects;
 		this.description = description;
+		this.excludes = excludes;
 	}
 
 	public boolean matches(Block b, int m) {
 		return b == block && (meta == -1 || meta == m);
+	}
+
+	/*
+	 * Whether this skill conflicts with any of the skills already in a tower, in either direction
+	 */
+	public boolean excludedBy(Iterable<String> have) {
+		for(String h : have) {
+			if(excludes.contains(h)) {
+				return true;
+			}
+			Skill other = TowerOfBabel.skills.get(h);
+			if(other != null && other.excludes.contains(name)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	public boolean allowedAt(int level) {
@@ -70,6 +89,8 @@ public class Skill {
 		String[] effects = config.getStringList("effects", name, new String[0], "Potion effects held while the skill is active, as name or name:level, "
 				+ "e.g. speed, strength:2, night_vision, haste, jump_boost, resistance, regeneration, fire_resistance, water_breathing, or a potion id");
 		String description = config.getString("description", name, "", "Shown on totem tooltips and in /tower list");
+		String[] excludes = config.getStringList("excludes", name, new String[0],
+				"Skills that can't share a tower with this one; whichever is lower in the tower counts. Use it to make players choose a path");
 		boolean dimSpecific = config.getBoolean("dimensionSpecific", name, TowerOfBabel.dimensionSpecific, "Only grant this skill while the owner is in the same dimension as their tower");
 
 		String[] parts = blockName.split(":");
@@ -91,7 +112,8 @@ public class Skill {
 		for(String e : effects) {
 			parsedEffects.add(parseEffect(e));
 		}
-		return new Skill(name, block, meta, new HashSet<String>(Arrays.asList(prereqs)), heights, parsed, dimSpecific, parsedEffects, description);
+		return new Skill(name, block, meta, new HashSet<String>(Arrays.asList(prereqs)), heights, parsed, dimSpecific, parsedEffects, description,
+				new HashSet<String>(Arrays.asList(excludes)));
 	}
 
 	/*
