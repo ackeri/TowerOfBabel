@@ -33,6 +33,9 @@ public class Tooltips {
 		Block block = Block.getBlockFromItem(e.itemStack.getItem());
 		if(block instanceof TowerBase) {
 			tip.add(EnumChatFormatting.GRAY + "Place to claim a tower; stack skill blocks on top");
+			if(TowerOfBabel.towerVariance > 0) {
+				tip.add(EnumChatFormatting.GRAY + "Can hold at most " + TowerOfBabel.towerVariance + " more skills than the shortest other tower");
+			}
 			if(TowerOfBabel.towerCapacity > 0) {
 				tip.add(EnumChatFormatting.GRAY + "A tower holds up to " + TowerOfBabel.towerCapacity + " skills");
 			}

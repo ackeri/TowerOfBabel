@@ -16,7 +16,10 @@ Recipe: a gold block surrounded by stone bricks.
 The server decides everything and sends each player their own permissions whenever they change, so the client
 refuses the same actions itself instead of showing blocks break, get placed or get crafted and then snap back.
 
-A tower only holds `general.towerCapacity` skills (default 6); totems above that don't count.
+No tower can get too far ahead: a tower holds at most `general.towerVariance` (default 3) more skills than the
+shortest other tower, and totems above that don't count until the others catch up. Only towers of players who
+have been online in the last `general.towerActiveDays` (default 7) count, so someone who stopped playing doesn't
+hold everyone back. `general.towerCapacity` adds a fixed limit as well (off by default).
 
 `/tower who [skill]` lists who has which skills and `/tower [player] list` shows a player's skills; anyone can
 use those. Ops can hand out skills directly with `/tower [player] <add|remove> <skill>`, and `/tower reload`
@@ -25,12 +28,14 @@ re-reads the skills config without a restart (new totem blocks still need one).
 ## Playing together
 The mod is built to push a group of players into different roles and then make them need each other:
 
-- **Scarcity:** a tower holds a limited number of skills, and skills can exclude each other, so nobody can learn
-  everything and every player's tower is a choice.
+- **Scarcity:** no tower can be more than a few skills taller than the shortest, and skills can exclude each other,
+  so nobody can learn everything and every player's tower is a choice. When a new player joins, everyone's towers
+  are held back until they catch up, which gives veterans a reason to help them, for instance by giving them totems.
 - **Interdependence:** making and using are separate skills. In the default config smiths forge iron and
   diamond gear but can't use it, and the ironclad can use it but not make it, so gear has to change hands.
 - **Discoverability:** when an action is blocked the message names the skill needed and who already has it,
   e.g. "Cannot carry Iron Sword (needs ironclad or smithing; Alice has it)", and `/tower who` lists everyone.
+  A full tower says whose tower is holding it back.
 
 The default config is an example of that: `smithing`/`mastersmithing` (tools totems) make iron/diamond gear,
 `ironclad`/`diamondclad` (iron and diamond blocks) use it, and `swiftness` (the running rabbit) and `might`
