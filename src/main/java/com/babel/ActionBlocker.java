@@ -40,6 +40,7 @@ import net.minecraft.item.crafting.IRecipe;
 import net.minecraft.item.crafting.CraftingManager;
 import com.TowerOfBabel;
 import com.tower.Skill;
+import com.tower.TowerData;
 import java.util.ArrayList;
 
 /*
@@ -313,7 +314,7 @@ public class ActionBlocker {
 			return false;
 		}
 		if(!p.worldObj.isRemote) {
-			tell(p, "Cannot " + a + " " + displayName + hint(a, name));
+			tell(p, "Cannot " + a + " " + displayName + serverHint(p, a, name));
 			if(a == Actions.USE || a == Actions.PLACE || a == Actions.INTERACT) {
 				//the client may have predicted the action happening, so put its inventory back
 				((EntityPlayerMP)p).sendContainerToPlayer(p.inventoryContainer);
@@ -326,8 +327,44 @@ public class ActionBlocker {
 	 * Which skills would allow an action, so a blocked player knows what to build
 	 */
 	public static String hint(Actions a, String name) {
+		List<String> needs = neededSkills(a, name);
 		if(name == null) return "";
+		if(needs.isEmpty()) return " (no skill allows this)";
+		return " (needs " + join(needs) + ")";
+	}
+
+	/*
+	 * The hint, plus who already has one of those skills, so the player knows who to trade with
+	 */
+	private static String serverHint(EntityPlayer p, Actions a, String name) {
+		List<String> needs = neededSkills(a, name);
+		if(name == null) return "";
+		if(needs.isEmpty()) return " (no skill allows this)";
+
+		List<String> holders = new ArrayList<String>();
+		TowerData data = TowerData.get();
+		for(String skill : needs) {
+			for(UUID id : data.holdersOf(skill)) {
+				String who = TowerData.nameOf(id);
+				if(!id.equals(p.getUniqueID()) && !holders.contains(who)) {
+					holders.add(who);
+				}
+			}
+		}
+		String who;
+		if(holders.isEmpty()) {
+			who = "nobody has it yet";
+		} else if(holders.size() > 3) {
+			who = holders.get(0) + ", " + holders.get(1) + " and " + (holders.size() - 2) + " others have it";
+		} else {
+			who = join(holders, " and ") + (holders.size() == 1 ? " has it" : " have it");
+		}
+		return " (needs " + join(needs) + "; " + who + ")";
+	}
+
+	public static List<String> neededSkills(Actions a, String name) {
 		List<String> needs = new ArrayList<String>();
+		if(name == null) return needs;
 		for(Skill s : TowerOfBabel.skills.values()) {
 			for(Grant g : s.grants) {
 				if((g.actions & a.bit()) != 0 && g.pattern.matcher(name).matches()) {
@@ -336,15 +373,20 @@ public class ActionBlocker {
 				}
 			}
 		}
-		if(needs.isEmpty()) {
-			return " (no skill allows this)";
+		return needs;
+	}
+
+	public static String join(List<String> parts) {
+		return join(parts, " or ");
+	}
+
+	public static String join(List<String> parts, String last) {
+		StringBuilder b = new StringBuilder();
+		for(int i = 0; i < parts.size(); i++) {
+			if(i > 0) b.append(i == parts.size() - 1 ? last : ", ");
+			b.append(parts.get(i));
 		}
-		StringBuilder b = new StringBuilder(" (needs ");
-		for(int i = 0; i < needs.size(); i++) {
-			if(i > 0) b.append(i == needs.size() - 1 ? " or " : ", ");
-			b.append(needs.get(i));
-		}
-		return b.append(")").toString();
+		return b.toString();
 	}
 
 	/*

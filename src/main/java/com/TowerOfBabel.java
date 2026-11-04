@@ -53,6 +53,7 @@ public class TowerOfBabel
 	public static boolean dimensionSpecific;
 	public static boolean tagItemOwners;
 	public static int maxTowerHeight;
+	public static int towerCapacity;
 	public static List<Grant> defaultGrants = new ArrayList<Grant>();
 	public static Map<String, Skill> skills = new LinkedHashMap<String, Skill>();
 
@@ -129,6 +130,9 @@ public class TowerOfBabel
 			config.setCategoryComment(GENERAL, "Every other category in this file defines a skill");
 			dimensionSpecific = config.getBoolean("dimensionSpecific", GENERAL, false,
 					"Default for skills that don't set it: only grant the skill while the owner is in the same dimension as their tower");
+			towerCapacity = config.getInt("towerCapacity", GENERAL, 6, 0, 255,
+					"How many skills one tower can hold; totems above that don't count. Keeps players from learning everything, "
+					+ "so they specialize and trade. 0 means no limit");
 			maxTowerHeight = config.getInt("maxTowerHeight", GENERAL, 32, 1, 255, "How many blocks above the base are checked for skill blocks");
 			tagItemOwners = config.getBoolean("tagItemOwners", GENERAL, false,
 					"Tag items with the last player to pick them up so automated crafting uses that player's skills. "
@@ -164,19 +168,29 @@ public class TowerOfBabel
 	}
 
 	/*
-	 * Example config for a new install: iron and diamond gear are locked behind tower skills, and a few totems give effects
+	 * Example config for a new install: iron and diamond gear are locked behind separate making and using skills, so players trade, and a few totems give effects
 	 */
 	private static void generateConfig() {
 		String gear = "_(sword|shovel|pickaxe|axe|hoe|helmet|chestplate|leggings|boots)";
 
 		config.get(GENERAL, "defaultGrants", new String[] {"all:(?!minecraft:(iron|diamond)" + gear + "$).*"});
 
-		config.get("ironworking", "block", "minecraft:iron_block");
-		config.get("ironworking", "grants", new String[] {"all:minecraft:iron" + gear});
+		//making and using are separate skills, so smiths and fighters need each other
+		config.get("smithing", "block", "TowerOfBabel:totem_tools_wood");
+		config.get("smithing", "grants", new String[] {"craft,carry:minecraft:iron" + gear});
+		config.get("smithing", "description", "The tools: forge iron tools and armor for others");
+		config.get("mastersmithing", "block", "TowerOfBabel:totem_tools_cobblestone");
+		config.get("mastersmithing", "prereqs", new String[] {"smithing"});
+		config.get("mastersmithing", "grants", new String[] {"craft,carry:minecraft:diamond" + gear});
+		config.get("mastersmithing", "description", "The tools, carved deeper: forge diamond tools and armor");
 
-		config.get("diamondworking", "block", "minecraft:diamond_block");
-		config.get("diamondworking", "prereqs", new String[] {"ironworking"});
-		config.get("diamondworking", "grants", new String[] {"all:minecraft:diamond" + gear});
+		config.get("ironclad", "block", "minecraft:iron_block");
+		config.get("ironclad", "grants", new String[] {"wear,hold,carry,break,attack,use:minecraft:iron" + gear});
+		config.get("ironclad", "description", "Wear and wield iron tools and armor");
+		config.get("diamondclad", "block", "minecraft:diamond_block");
+		config.get("diamondclad", "prereqs", new String[] {"ironclad"});
+		config.get("diamondclad", "grants", new String[] {"wear,hold,carry,break,attack,use:minecraft:diamond" + gear});
+		config.get("diamondclad", "description", "Wear and wield diamond tools and armor");
 
 		//totem skills that give effects, after the sketches they were drawn from
 		config.get("swiftness", "block", "TowerOfBabel:totem_running_rabbit_wood");
@@ -189,6 +203,8 @@ public class TowerOfBabel
 		config.get("might", "block", "TowerOfBabel:totem_bull_wood");
 		config.get("might", "effects", new String[] {"strength"});
 		config.get("might", "description", "The bull: Strength");
+		//the rabbit and the bull pull in different directions; a tower can follow one
+		config.get("might", "excludes", new String[] {"swiftness"});
 		config.get("nighteyes", "block", "TowerOfBabel:totem_rabbit_head_wood");
 		config.get("nighteyes", "effects", new String[] {"night_vision"});
 		config.get("nighteyes", "description", "The rabbit's wide eyes: Night Vision");
